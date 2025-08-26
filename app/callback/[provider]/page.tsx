@@ -1,23 +1,44 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 
-export default function Callback({ params }) {
-  const provider = params.provider;
+export default function CallbackPage() {
+  const { provider } = useParams(); // get dynamic route param
+  const [status, setStatus] = useState("Connecting...");
 
   useEffect(() => {
+    if (!provider) {
+      setStatus("Invalid provider.");
+      return;
+    }
+
     const paramsObj = new URLSearchParams(window.location.search);
     const query = paramsObj.toString();
 
-    // Try forwarding the code to localhost Express
-    fetch(`http://localhost:3000/callback/${provider}?${query}`)
+    const localhostUrl = `http://localhost:3000/callback/${provider}?${query}`;
+
+    // Try sending the code to your Electron Express server
+    fetch(localhostUrl, { method: "GET", mode: "no-cors" })
       .then(() => {
-        document.body.innerHTML = `<h2>${provider} connected successfully! You can close this tab.</h2>`;
+        setStatus(`${provider} connected successfully! Closing this tab...`);
+        // Try to auto-close the tab
+        setTimeout(() => {
+          window.close();
+        }, 500);
       })
       .catch(() => {
-        document.body.innerHTML = `<h2>Could not reach desktop app. Make sure it’s running.</h2>`;
+        setStatus(
+          `Could not reach desktop app. Make sure it’s running. You can close this tab manually.`
+        );
       });
-  }, [params.provider]);
+  }, [provider]);
 
-  return <p>Connecting {params.provider}...</p>;
+  return (
+    <main style={{ fontFamily: "Arial, sans-serif", padding: "20px" }}>
+      <h1>OAuth Redirect</h1>
+      <p>Provider: <b>{provider || "unknown"}</b></p>
+      <p>{status}</p>
+    </main>
+  );
 }
